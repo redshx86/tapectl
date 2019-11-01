@@ -49,9 +49,9 @@ static TCHAR **argv_parse(TCHAR **p_arg_buf, const TCHAR *command_line)
 			arg = pcur;
 			if( (pcur = _tcspbrk(arg, _T(" \t"))) != NULL )
 				*(pcur++) = 0;
-			/* Replace command switches with a "special character" */
+			/* Replace command switches with escape character */
 			if( ((arg[0] == _T('-')) || (arg[0] == _T('/'))) && (arg[1] != 0) )
-				arg[0] = 0x00A7;
+				arg[0] = _T('\x1B');
 		}
 
 		/* Expand argument buffer if required */
@@ -87,13 +87,13 @@ static TCHAR **argv_parse(TCHAR **p_arg_buf, const TCHAR *command_line)
 /* Check if argument is command line switch */
 static int is_command_switch(const TCHAR *arg)
 {
-	return ((arg != NULL) && (arg[0] == 0x00A7));
+	return ((arg != NULL) && (arg[0] == _T('\x1B')));
 }
 
 /* Check if argument is command line parameter */
 static int is_command_param(const TCHAR *arg)
 {
-	return ((arg != NULL) && (arg[0] != 0x00A7));
+	return ((arg != NULL) && (arg[0] != _T('\x1B')));
 }
 
 /* ---------------------------------------------------------------------------------------------- */
@@ -797,12 +797,16 @@ static int load_config_file(struct msg_filter *mf, struct cmd_line_args *cmd_lin
 					;
 				if((p = strchr(str, '\n')) != NULL)
 					*p = 0;
-				if( (*str != ';') && (*str != '#') &&
-					((int)mbstowcs(buf, str, bufsize - 1) > 0) )
-				{
-					if(!cmd_parse(mf, cmd_line, buf, 1))
-						success = 0;
-				}
+				if((*str == ';') || (*str == '#') || (*str == 0))
+					continue;
+#ifdef _UNICODE
+				if((int)mbstowcs(buf, str, bufsize - 1) <= 0)
+					continue;
+#else
+				strcpy(buf, str);
+#endif
+				if(!cmd_parse(mf, cmd_line, buf, 1))
+					success = 0;
 			}
 			fclose(fp);
 		}
