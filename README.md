@@ -41,7 +41,7 @@ Note: written data padded with 00's to nearest multiple of block size. For examp
 
 To restore this file immediately, backward seek to filemark with `-b`, skip filemark with `-f` and read data with `-r`:
 
-`tapectl -bfr another.zip`
+`tapectl -bf -r another.zip`
 
 You can use count parameter with `-f`. For example, to read third file from the tape:
 
