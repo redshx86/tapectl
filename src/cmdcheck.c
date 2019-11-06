@@ -491,25 +491,16 @@ static void tape_operation_check(struct msg_filter *mf, struct cmd_line_args *cm
 					st->flags |= ST_WARNING;
 				}
 				/* Check file size vs remaining tape capacity */
-				else if((st->flags & ST_CAPACITY) && (st->flags & ST_POSITION))
+				else if( (st->flags & ST_CAPACITY) && (st->flags & ST_POSITION) &&
+						 (st->position + file_size > CAP_THRES(st->capacity)) )
 				{
-					unsigned __int64 avail_capacity;
-					avail_capacity = st->capacity - st->position;
-					if(file_size > avail_capacity) {
-						TCHAR size_str_buf[64], size_str_buf2[64];
-						msg_print(mf, MSG_WARNING,
-							_T("Writing \"%s\" (%s) will cross end of media after %s.\n"),
-							op->filename, fmt_block_size(size_str_buf, file_size, 1),
-							fmt_block_size(size_str_buf2, avail_capacity, 1));
-						st->flags |= ST_WARNING;
-					} else if(st->position + file_size > CAP_THRES(st->capacity)) {
-						TCHAR size_str_buf[64], size_str_buf2[64];
-						msg_print(mf, MSG_WARNING,
-							_T("Writing \"%s\" (%s) will nearly hit the end of media at %s.\n"),
-							op->filename, fmt_block_size(size_str_buf, file_size, 1),
-							fmt_block_size(size_str_buf2, avail_capacity, 1));
-						st->flags |= ST_WARNING;
-					}
+					TCHAR size_str_buf[64], size_str_buf2[64];
+					msg_print(mf, MSG_WARNING,
+						_T("Writing \"%s\" (%s) will%s cross the end of media at %s.\n"),
+						op->filename, fmt_block_size(size_str_buf, file_size, 1),
+						(st->position + file_size > st->capacity) ? _T("") : _T(" nearly"),
+						fmt_block_size(size_str_buf2, st->capacity - st->position, 1));
+					st->flags |= ST_WARNING;
 				}
 			}
 			/* Check for no filemark between files */

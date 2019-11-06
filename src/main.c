@@ -290,6 +290,11 @@ int main()
 	msg_free(&mf);
 	_CrtDumpMemoryLeaks();
 
+#ifdef _DEBUG
+	_putts(_T("\nPress Enter to continue..."));
+	getchar();
+#endif
+
 	return (success ? 0 : 1);
 }
 
