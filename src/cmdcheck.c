@@ -61,7 +61,7 @@ static int check_src_file(struct msg_filter *mf, struct cmd_sim_state *st,
 		case ERROR_FILE_NOT_FOUND:
 		case ERROR_PATH_NOT_FOUND: /* give warning if input file not found */
 			msg_print(mf, MSG_ERROR,
-				_T("Can't open \"%s\" file not found.\n"), filename);
+				_T("Can't open \"%s\": file not found.\n"), filename);
 			break;
 		case ERROR_ACCESS_DENIED: /* give warning if access denied */
 			msg_print(mf, MSG_ERROR,
@@ -69,12 +69,12 @@ static int check_src_file(struct msg_filter *mf, struct cmd_sim_state *st,
 			break;
 		case ERROR_SHARING_VIOLATION: /* give warning if file locked */
 			msg_print(mf, MSG_ERROR,
-				_T("Can't open \"%s\" file is locked by another program.\n"), filename);
+				_T("Can't open \"%s\": file is locked by another program.\n"), filename);
 			break;
 		case ERROR_INVALID_NAME:
 		case ERROR_BAD_PATHNAME:
 			msg_print(mf, MSG_ERROR,
-				_T("Can't open \"%s\" incorrect filename.\n"), filename);
+				_T("Can't open \"%s\": incorrect filename.\n"), filename);
 			break;
 		default: /* other error */
 			msg_print(mf, MSG_ERROR, _T("Can't open \"%s\": %s (%u).\n"),
@@ -124,7 +124,7 @@ static void check_dest_file(struct msg_filter *mf, struct cmd_sim_state *st,
 		case ERROR_INVALID_NAME:
 		case ERROR_BAD_PATHNAME:
 			msg_print(mf, MSG_ERROR,
-				_T("Can't save to \"%s\" incorrect filename.\n"), filename);
+				_T("Can't save to \"%s\": incorrect filename.\n"), filename);
 			break;
 		default:
 			msg_print(mf, MSG_ERROR,
@@ -146,7 +146,7 @@ static void check_dest_file(struct msg_filter *mf, struct cmd_sim_state *st,
 			st->flags |= ST_ERROR;
 		} else if(overwrite_check) { /* give overwrite warning */
 			msg_print(mf, MSG_WARNING,
-				_T("Destination \"%s\" will be overwritten!\n"),
+				_T("Destination \"%s\": will be overwritten!\n"),
 				filename);
 			st->flags |= ST_OVERWRITE;
 		}
@@ -480,12 +480,13 @@ static void tape_operation_check(struct msg_filter *mf, struct cmd_line_args *cm
 				if((op->code == OP_WRITE_DATA_AND_FMK) && (st->drive != NULL))
 					file_size += st->drive->DefaultBlockSize;
 				/* Check file size vs full tape capacity */
-				if((st->flags & ST_CAPACITY) && (file_size > st->capacity))
+				if((st->flags & ST_CAPACITY) && (file_size > CAP_THRES(st->capacity)))
 				{
 					TCHAR size_str_buf[64], size_str_buf2[64];
 					msg_print(mf, MSG_WARNING,
-						_T("Size of \"%s\" (%s) is exceeding the media capacity (%s).\n"),
+						_T("Size of \"%s\" (%s) is%s exceeding the media capacity (%s).\n"),
 						op->filename, fmt_block_size(size_str_buf, file_size, 1),
+						(file_size > st->capacity) ? _T("") : _T(" nearly"),
 						fmt_block_size(size_str_buf2, st->capacity, 1));
 					st->flags |= ST_WARNING;
 				}
@@ -664,17 +665,22 @@ int check_tape_operations(
 		if(media->PartitionCount == 1)
 			st.flags |= ST_SINGLE_PARTITION;
 		/* Check full capacity */
-		if(check_feature(&st, TAPE_DRIVE_TAPE_CAPACITY) && (media->Capacity.QuadPart != 0)) {
+		if( check_feature(&st, TAPE_DRIVE_TAPE_CAPACITY) &&
+			(media->Capacity.QuadPart != 0) )
+		{
 			st.capacity = media->Capacity.QuadPart;
 			st.flags |= ST_CAPACITY;
 		}
-		/* Check remaining capacity */
-		if(check_feature(&st, TAPE_DRIVE_TAPE_REMAINING)) {
+		/* Check remaining capacity (don't trust when drive reports 100% remaining) */
+		if( check_feature(&st, TAPE_DRIVE_TAPE_REMAINING) &&
+			(media->Remaining.QuadPart != media->Capacity.QuadPart) )
+		{
 			st.remaining = media->Remaining.QuadPart;
 			st.flags |= ST_REMAINING;
 		}
 		/* Check for empty media */
-		if((st.flags & ST_CAPACITY) && (st.flags & ST_REMAINING) && (st.remaining == st.capacity)) {
+		if((st.flags & ST_CAPACITY) && (st.flags & ST_REMAINING) && (st.remaining == st.capacity))
+		{
 			st.flags |= ST_EMPTY|ST_POSITION|ST_AT_END_OF_DATA;
 			st.position = 0;
 		}
