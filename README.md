@@ -13,7 +13,7 @@ To backup directory, pack it into some archive and write to the tape:
 
 `tapectl -w folder.zip`
 
-Data will be padded with 00's to nearest multiple of block size. When block size not set, program uses device default block size for padding. You can check current block size with drive info command:
+When using fixed block mode, data will be padded with 00's to nearest multiple of block size. You can check current block size with drive info command.
 
 `tapectl -i`
 
@@ -21,7 +21,7 @@ Block size can be set with `-k` command. For example, command
 
 `tapectl -k 32K -w folder.zip`
 
-sets block size to 32768 bytes then writes folder.zip to the tape.
+sets block size to 32768 bytes then writes folder.zip to the tape. If your drive supports variable block size, it can be enabled with `-k 0`. Use `tapectl -vi` or `tapectl -Vi` to check features supported by the drive.
 
 Tape drives usually have hardware data compression and you probably want to disable it when archiving already compressed data. Use `-C` command to enable or disable hardware compression:
 
@@ -31,13 +31,13 @@ To restore your file, rewind with `-o` and read file with `-r`:
 
 `tapectl -o -r restored.zip`
 
-To read data from tape, exactly same block size should be set as when writing data. Otherwise driver will probably report error.
+To read data from tape, exactly same block size should be set as when writing data. Otherwise driver will probably report error or read speed can be very slow.
 
 To append other file, seek to the end of data with `-e`, write filemark (special block for marking end of file or separating files) with `-m` and write data with `-w`. Options can be combined to single group:
 
 `tapectl -emw other.zip`
 
-Note: written data padded with 00's to nearest multiple of block size. For example, `-w file1.zip file2.zip` writes to the tape `<file1.zip> <zero padding> <file2.zip> <zero padding>`. Most unpackers can't parse this as single archive. You normally should use filemarks to separate files. Program emits warning before writing multiple files without filemark between them. However program doesn't check for filemark when adding files to the tape with some existing data. You can use `-epf` (seek to end of data, move 1 block back and try to skip filemark) to check if filemark present at the end of data. It should succeed if last block is filemark and give error otherwise. Use `-mw <file>` to put filemark before appending data.
+Note: written data padded with 00's to nearest multiple of block size (when using fixed block mode). For example, `-w file1.zip file2.zip` writes to the tape `<file1.zip> <zero padding> <file2.zip> <zero padding>`. Most unpackers can't parse this as single archive. You normally should use filemarks to separate files. Program emits warning before writing multiple files without filemark between them. However program doesn't check for filemark when adding files to the tape with some existing data. You can use `-epf` (seek to end of data, move 1 block back and try to skip filemark) to check if filemark present at the end of data. It should succeed if last block is filemark and give error otherwise. Use `-mw <file>` to put filemark before appending data.
 
 To restore this file immediately, backward seek to filemark with `-b`, skip filemark with `-f` and read data with `-r`:
 

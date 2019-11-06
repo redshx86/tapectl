@@ -67,7 +67,7 @@ static unsigned int __stdcall read_thread_sync_nullbuf(struct file_thread_ctx *c
 		crc32_thread_write(&(ctx->crc_thrd), ctx->io_buf, cb_read);
 
 		/* Check for error or EOF */
-		if((ctx->error != NO_ERROR) || (cb_read < ctx->io_block_size))
+		if((ctx->error != NO_ERROR) || (cb_read == 0))
 			break;
 	}
 	
@@ -294,7 +294,7 @@ static unsigned int __stdcall read_thread_sync(struct file_thread_ctx *ctx)
 				}
 
 				/* Check for end of file */
-				if((cb_rd < ctx->io_block_size) || (ctx->error != NO_ERROR))
+				if((cb_rd == 0) || (ctx->error != NO_ERROR))
 					break;
 			}
 		}
@@ -798,13 +798,10 @@ static unsigned int __stdcall read_thread_async(struct file_thread_ctx *ctx)
 				error = NO_ERROR;
 				if(!GetOverlappedResult(ctx->h_file, &(entry->ov), &cb_read, FALSE))
 					error = GetLastError();
-				if((cb_read < ctx->io_block_size) && (error == NO_ERROR))
-					error = ERROR_HANDLE_EOF;
 			} else {
 				error = (DWORD) entry->ov.Internal;
 				cb_read = (DWORD) entry->ov.InternalHigh;
 			}
-			assert((cb_read == ctx->io_block_size) || (error != NO_ERROR));
 
 			/* Update byte counter and CRC32 of read data */
 			if(cb_read > 0) {
@@ -878,7 +875,7 @@ static unsigned int __stdcall read_thread_async(struct file_thread_ctx *ctx)
 				{
 					/* Sync success or error (some data still can be read) */
 
-					if((cb_read < ctx->io_block_size) && (error == NO_ERROR))
+					if((cb_read == 0) && (error == NO_ERROR))
 						error = ERROR_HANDLE_EOF;
 
 					/* Just add to queue and deal as with async completion */

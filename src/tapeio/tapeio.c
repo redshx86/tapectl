@@ -44,7 +44,7 @@ int tape_file_write(struct msg_filter *mf, struct tape_io_ctx *ctx,
 	HANDLE h_tape, const TCHAR *filename)
 {
 	HANDLE h_file;
-	unsigned int dst_block_align, dst_block_size;
+	unsigned int tape_block_align, tape_block_size;
 	ULARGE_INTEGER file_size;
 	TAPE_GET_DRIVE_PARAMETERS drive_info;
 	TAPE_GET_MEDIA_PARAMETERS media_info;
@@ -56,22 +56,22 @@ int tape_file_write(struct msg_filter *mf, struct tape_io_ctx *ctx,
 		return 0;
 
 	/* Check for write protection */
-	if((drive_info.FeaturesLow & TAPE_DRIVE_WRITE_PROTECT) && (media_info.WriteProtected)) {
+	if((drive_info.FeaturesLow & TAPE_DRIVE_WRITE_PROTECT) && media_info.WriteProtected) {
 		msg_print(mf, MSG_ERROR, _T("Can't write: media is write protected.\n"));
 		return 0;
 	}
 
-	/* Use block size set or default block size */
-	if(media_info.BlockSize != 0) {
-		dst_block_align = media_info.BlockSize;
-	} else if(drive_info.DefaultBlockSize != 0) {
-		dst_block_align = drive_info.DefaultBlockSize;
+	/* Set block align and I/O block size */
+	tape_block_align = media_info.BlockSize;
+	if(media_info.BlockSize > 0) {
+		tape_block_size = ((ctx->io_block_size + media_info.BlockSize - 1) / 
+			media_info.BlockSize) * media_info.BlockSize;
+	} else if(drive_info.DefaultBlockSize > 0) {
+		tape_block_size = ((ctx->io_block_size + drive_info.DefaultBlockSize - 1) / 
+			drive_info.DefaultBlockSize) * drive_info.DefaultBlockSize;
 	} else {
-		msg_print(mf, MSG_ERROR, _T("Can't write: block size is not set.\n"));
-		return 0;
+		tape_block_size = ctx->io_block_size;
 	}
-	dst_block_size = ((ctx->io_block_size + dst_block_align - 1) / 
-		dst_block_align) * dst_block_align;
 
 	/* Open source file */
 	msg_print(mf, MSG_VERY_VERBOSE,
@@ -103,8 +103,8 @@ int tape_file_write(struct msg_filter *mf, struct tape_io_ctx *ctx,
 		COPY_SUSTAIN_WRITE,
 		h_tape,
 		ctx->io_queue_size,
-		dst_block_size,
-		dst_block_align,
+		tape_block_size,
+		tape_block_align,
 		h_file,
 		ctx->io_queue_size,
 		ctx->file_block_size,
@@ -133,7 +133,7 @@ int tape_file_read(struct msg_filter *mf, struct tape_io_ctx *ctx,
 	HANDLE h_tape, const TCHAR *filename)
 {
 	HANDLE h_file;
-	unsigned int tape_block_align, tape_block_size;
+	unsigned int tape_block_size;
 	TAPE_GET_DRIVE_PARAMETERS drive_info;
 	TAPE_GET_MEDIA_PARAMETERS media_info;
 	unsigned __int64 data_size, padded_size;
@@ -143,17 +143,16 @@ int tape_file_read(struct msg_filter *mf, struct tape_io_ctx *ctx,
 	if(!get_tape_info(mf, h_tape, &drive_info, &media_info))
 		return 0;
 
-	/* Use block size set or default block size */
-	if(media_info.BlockSize != 0) {
-		tape_block_align = media_info.BlockSize;
-	} else if(drive_info.DefaultBlockSize != 0) {
-		tape_block_align = drive_info.DefaultBlockSize;
+	/* Set I/O block size */
+	if(media_info.BlockSize > 0) {
+		tape_block_size = ((ctx->io_block_size + media_info.BlockSize - 1) / 
+			media_info.BlockSize) * media_info.BlockSize;
+	} else if(drive_info.DefaultBlockSize > 0) {
+		tape_block_size = ((ctx->io_block_size + drive_info.DefaultBlockSize - 1) / 
+			drive_info.DefaultBlockSize) * drive_info.DefaultBlockSize;
 	} else {
-		msg_print(mf, MSG_ERROR, _T("Can't read: block size is not set.\n"));
-		return 0;
+		tape_block_size = ctx->io_block_size;
 	}
-	tape_block_size = ((ctx->io_block_size + tape_block_align - 1) / 
-		tape_block_align) * tape_block_align;
 
 	/* Create output file */
 	msg_print(mf, MSG_VERY_VERBOSE,
