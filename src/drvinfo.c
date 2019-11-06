@@ -205,8 +205,12 @@ void list_media_info(struct msg_filter *mf, TAPE_GET_DRIVE_PARAMETERS *drive, TA
 		msg_append(mf, MSG_MESSAGE, _T("Remaining capacity     : %s\n"), 
 			fmt_block_size(size_str_buf, media->Remaining.QuadPart, 1));
 	}
-	msg_append(mf, MSG_MESSAGE, _T("Block size             : %s\n"),
-		fmt_block_size(size_str_buf, media->BlockSize, 2));
+	if(media->BlockSize == 0) {
+		msg_append(mf, MSG_MESSAGE, _T("Block size             : variable\n"));
+	} else {
+		msg_append(mf, MSG_MESSAGE, _T("Block size             : %s\n"),
+			fmt_block_size(size_str_buf, media->BlockSize, 2));
+	}
 	if(drive->MaximumPartitionCount > 1) {
 		msg_append(mf, MSG_MESSAGE, _T("Partition count        : %u\n"),
 			media->PartitionCount);
