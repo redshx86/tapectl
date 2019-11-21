@@ -33,11 +33,11 @@ To restore your file, rewind with `-o` and read file with `-r`:
 
 To read data from tape, exactly same block size should be set as when writing data. Otherwise driver will probably report error or read speed can be very slow.
 
-To append other file, seek to the end of data with `-e`, write filemark (special block for marking end of file or separating files) with `-m` and write data with `-w`. Options can be combined to single group:
+To append other file, seek to the end of data with `-e`, write filemark (special block for marking end of file or separating files) with `-m` and write data with `-w`. Options can be grouped as follows:
 
-`tapectl -emw other.zip`
+`tapectl -em -w other.zip`
 
-Note: written data padded with 00's to nearest multiple of block size (when using fixed block mode). For example, `-w file1.zip file2.zip` writes to the tape `<file1.zip> <zero padding> <file2.zip> <zero padding>`. Most unpackers can't parse this as single archive. You normally should use filemarks to separate files. Program emits warning before writing multiple files without filemark between them. However program doesn't check for filemark when adding files to the tape with some existing data. You can use `-epf` (seek to end of data, move 1 block back and try to skip filemark) to check if filemark present at the end of data. It should succeed if last block is filemark and give error otherwise. Use `-mw <file>` to put filemark before appending data.
+Note: written data padded with 00's to nearest multiple of block size (when using fixed block mode). For example, `-w file1.zip file2.zip` writes to the tape `<file1.zip> <zero padding> <file2.zip> <zero padding>`. Most unpackers can't parse this as single archive. You normally should use filemarks to separate files. Program emits warning before writing multiple files without filemark between them. However program doesn't check for filemark when adding files to the tape with some existing data. You can use `-epf` (seek to end of data, move 1 block back and try to skip filemark) to check if filemark present at the end of data. It should succeed if last block is filemark and give error otherwise. Use `-m -w <file>` to put filemark before appending data.
 
 To restore this file immediately, backward seek to filemark with `-b`, skip filemark with `-f` and read data with `-r`:
 
@@ -73,7 +73,7 @@ You can use size modifiers for numbers if this applicable, e.g. `-k 32k`, `-I "2
 
 ### Drive commands
 
-`-t <N>`, `-t <tapeN>` or `-t \\.\TapeN`
+`-t <N>`, `-t tape<N>` or `-t \\.\Tape<N>`
 Select tape device to be used.
 
 `-C <on/off>`
