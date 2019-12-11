@@ -26,7 +26,7 @@
 #define MAX_CRC_BUFFER				( 2 * MAX_IO_BLOCK_SIZE )
 
 /* Give warning if less than ~3.6% of media capacity remaining after writing file */
-#define CAP_THRES(full_cap)			(full_cap / 28UL)
+#define CAP_THRES(full_cap)			((full_cap) - (full_cap) / 28UL)
 
 #define STATS_REFRESH_INTERVAL		250
 #define RATE_COUNT_POINTS			8
