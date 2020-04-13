@@ -746,7 +746,7 @@ int check_tape_operations(
 	/* Output simulation result */
 	if(!(cmd_line->flags & MODE_TEST)) {
 		if(st.flags & ST_ERROR) {
-			msg_print(mf, MSG_INFO, _T("You can skip some checks with -y if you sure...\n"));
+			msg_print(mf, MSG_VERBOSE, _T("You can skip some checks with -y if you sure...\n"));
 			success = 0;
 		} else if( (st.flags & ST_WARNING) || ((st.flags & ST_OVERWRITE) && (cmd_line->flags & MODE_PROMPT_OVERWRITE)) ) {
 			success = prompt(_T("Would you like to continue?"), !(st.flags & ST_WARNING));
